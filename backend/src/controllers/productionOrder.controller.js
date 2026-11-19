@@ -3,13 +3,11 @@ const productionOrderService =
 
 async function create(req, res, next) {
   try {
-    const order =
-      await productionOrderService.create({
-        productId: req.body.product,
-        quantity: req.body.quantity,
-        assignedTo: req.body.assignedTo,
-        createdBy: req.user._id
-      });
+    const order = await productionOrderService.create({
+      items: req.body.items,
+      assignedTo: req.body.assignedTo,
+      createdBy: req.user._id
+    });
 
     return res.status(201).json({
       success: true,
@@ -23,14 +21,13 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const order =
-      await productionOrderService.update(
-        req.params.id,
-        {
-          quantity: req.body.quantity,
-          assignedTo: req.body.assignedTo
-        }
-      );
+    const order = await productionOrderService.update(
+      req.params.id,
+      {
+        items: req.body.items,
+        assignedTo: req.body.assignedTo
+      }
+    );
 
     return res.status(200).json({
       success: true,
@@ -44,10 +41,9 @@ async function update(req, res, next) {
 
 async function cancel(req, res, next) {
   try {
-    const order =
-      await productionOrderService.cancel(
-        req.params.id
-      );
+    const order = await productionOrderService.cancel(
+      req.params.id
+    );
 
     return res.status(200).json({
       success: true,
@@ -61,15 +57,14 @@ async function cancel(req, res, next) {
 
 async function list(req, res, next) {
   try {
-    const result =
-      await productionOrderService.list({
-        status: req.query.status,
-        product: req.query.product,
-        from: req.query.from,
-        to: req.query.to,
-        page: req.pagination.page,
-        limit: req.pagination.limit
-      });
+    const result = await productionOrderService.list({
+      status: req.query.status,
+      product: req.query.product,
+      from: req.query.from,
+      to: req.query.to,
+      page: req.pagination.page,
+      limit: req.pagination.limit
+    });
 
     return res.status(200).json({
       success: true,
@@ -79,6 +74,10 @@ async function list(req, res, next) {
     next(error);
   }
 }
+
 module.exports = {
-  create,update,cancel,list
+  create,
+  update,
+  cancel,
+  list
 };

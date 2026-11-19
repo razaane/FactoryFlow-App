@@ -8,62 +8,18 @@ const User = require("../models/user.model");
 const productionOrderRepository =
   require("../repositories/productionOrder.repository");
 
-async function create({
-  productId,
-  quantity,
-  assignedTo,
-  createdBy
-}) {
-  // 1. Vérifier quantity
-  if (
-    !Number.isFinite(quantity) ||
-    quantity <= 0
-  ) {
-    throw new AppError(
-      "La quantité doit être strictement positive",
-      400
-    );
+// Vérifie que l'utilisateur existe et qu'il est opérateur
+async function checkOperator(userId) {
+  if (!mongoose.isValidObjectId(userId)) {
+    throw new AppError("Identifiant opérateur invalide", 400);
   }
 
-  // 2. Vérifier Product ID
-  if (!mongoose.isValidObjectId(productId)) {
-    throw new AppError(
-      "Identifiant produit invalide",
-      400
-    );
-  }
-
-  // 3. Vérifier assignedTo ID
-  if (!mongoose.isValidObjectId(assignedTo)) {
-    throw new AppError(
-      "Identifiant opérateur invalide",
-      400
-    );
-  }
-
-  // 4. Chercher le produit
-  const product = await Product.findById(productId)
-    .lean();
-
-  if (!product) {
-    throw new AppError(
-      "Produit introuvable",
-      404
-    );
-  }
-
-  // 5. Chercher l'opérateur
-  const operator = await User.findById(assignedTo)
-    .lean();
+  const operator = await User.findById(userId).lean();
 
   if (!operator) {
-    throw new AppError(
-      "Utilisateur introuvable",
-      404
-    );
+    throw new AppError("Utilisateur introuvable", 404);
   }
 
-  // 6. Vérifier rôle
   if (operator.role !== "Operateur") {
     throw new AppError(
       "L'utilisateur affecté doit être un opérateur",
@@ -71,24 +27,45 @@ async function create({
     );
   }
 
-  // 7. Copier composition
-  const composition = product.composition.map(
-    item => ({
-      material: item.material,
-      quantity: item.quantity
-    })
-  );
+  return operator;
+}
 
-  // 8. Générer référence
+// [{ product, quantity }]  ->  items avec une COPIE de la composition de chaque produit
+async function buildItems(items) {
+  const orderItems = [];
+
+  for (const item of items) {
+    const product = await Product.findById(item.product).lean();
+
+    if (!product) {
+      throw new AppError("Produit introuvable", 404);
+    }
+
+    const composition = product.composition.map((line) => ({
+      material: line.material,
+      quantity: line.quantity
+    }));
+
+    orderItems.push({
+      product: product._id,
+      quantity: item.quantity,
+      composition
+    });
+  }
+
+  return orderItems;
+}
+
+async function create({ items, assignedTo, createdBy }) {
+  const operator = await checkOperator(assignedTo);
+  const orderItems = await buildItems(items);
+
   const reference = `OF-${Date.now()}`;
 
-  // 9. Créer ordre
   try {
     return await productionOrderRepository.create({
       reference,
-      product: product._id,
-      quantity,
-      composition,
+      items: orderItems,
       status: "PLANIFIE",
       assignedTo: operator._id,
       createdBy
@@ -105,21 +82,11 @@ async function create({
   }
 }
 
-async function update(
-  id,
-  {
-    quantity,
-    assignedTo
-  }
-) {
-  const order =
-    await productionOrderRepository.findById(id);
+async function update(id, { items, assignedTo }) {
+  const order = await productionOrderRepository.findById(id);
 
   if (!order) {
-    throw new AppError(
-      "Ordre introuvable",
-      404
-    );
+    throw new AppError("Ordre introuvable", 404);
   }
 
   if (order.status !== "PLANIFIE") {
@@ -129,76 +96,25 @@ async function update(
     );
   }
 
-  if (
-    quantity !== undefined &&
-    (
-      typeof quantity !== "number" ||
-      !Number.isFinite(quantity) ||
-      quantity <= 0
-    )
-  ) {
-    throw new AppError(
-      "La quantité doit être strictement positive",
-      400
-    );
-  }
-
-  if (
-    assignedTo !== undefined &&
-    !mongoose.isValidObjectId(assignedTo)
-  ) {
-    throw new AppError(
-      "Identifiant opérateur invalide",
-      400
-    );
-  }
-
-  if (assignedTo !== undefined) {
-    const operator =
-      await User.findById(assignedTo).lean();
-
-    if (!operator) {
-      throw new AppError(
-        "Utilisateur introuvable",
-        404
-      );
-    }
-
-    if (operator.role !== "Operateur") {
-      throw new AppError(
-        "L'utilisateur affecté doit être un opérateur",
-        400
-      );
-    }
-  }
-
   const data = {};
 
-  if (quantity !== undefined) {
-    data.quantity = quantity;
+  if (items !== undefined) {
+    data.items = await buildItems(items);
   }
 
   if (assignedTo !== undefined) {
-    data.assignedTo = assignedTo;
+    const operator = await checkOperator(assignedTo);
+    data.assignedTo = operator._id;
   }
 
-  // IMPORTANT:
-  // On ne touche PAS à composition.
-  return productionOrderRepository.updateById(
-    id,
-    data
-  );
+  return productionOrderRepository.updateById(id, data);
 }
 
 async function cancel(id) {
-  const order =
-    await productionOrderRepository.findById(id);
+  const order = await productionOrderRepository.findById(id);
 
   if (!order) {
-    throw new AppError(
-      "Ordre introuvable",
-      404
-    );
+    throw new AppError("Ordre introuvable", 404);
   }
 
   if (order.status !== "PLANIFIE") {
@@ -208,23 +124,13 @@ async function cancel(id) {
     );
   }
 
-  return productionOrderRepository.cancelById(
-    id,
-    {
-      status: "ANNULE",
-      cancelledAt: new Date()
-    }
-  );
+  return productionOrderRepository.cancelById(id, {
+    status: "ANNULE",
+    cancelledAt: new Date()
+  });
 }
 
-async function list({
-  status,
-  product,
-  from,
-  to,
-  page,
-  limit
-}) {
+async function list({ status, product, from, to, page, limit }) {
   const filter = {};
 
   if (status) {
@@ -232,27 +138,19 @@ async function list({
   }
 
   if (product) {
-    filter.product = product;
+    filter["items.product"] = product;
   }
 
   if (from || to) {
     filter.createdAt = {};
 
     if (from) {
-      filter.createdAt.$gte =
-        new Date(from);
+      filter.createdAt.$gte = new Date(from);
     }
 
     if (to) {
       const endDate = new Date(to);
-
-      endDate.setHours(
-        23,
-        59,
-        59,
-        999
-      );
-
+      endDate.setHours(23, 59, 59, 999);
       filter.createdAt.$lte = endDate;
     }
   }
@@ -263,6 +161,10 @@ async function list({
     limit
   });
 }
+
 module.exports = {
-  create ,update , cancel , list
+  create,
+  update,
+  cancel,
+  list
 };
