@@ -1,18 +1,49 @@
 const mongoose = require("mongoose");
 
-const orderCompositionSchema = new mongoose.Schema(
+const compositionSchema = new mongoose.Schema(
   {
     material: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "RawMaterial",
       required: true
     },
+    quantity: {
+      type: Number,
+      required: true
+    }
+  },
+  { _id: false }
+);
 
+// une ligne de l'ordre = un produit + sa quantité + une copie de sa composition
+const itemSchema = new mongoose.Schema(
+  {
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true
+    },
     quantity: {
       type: Number,
       required: true,
-      min: 0
+      validate: {
+        validator: (value) => value > 0,
+        message: "La quantité doit être strictement positive"
+      }
+    },
+    composition: {
+    type: [compositionSchema],
+    validate: {
+      validator: function (composition) {
+        const materialIds = composition.map(
+          (item) => item.material.toString()
+        );
+
+        return materialIds.length === new Set(materialIds).size;
+      },
+      message: "Chaque matière première doit apparaître une seule fois."
     }
+}
   },
   { _id: false }
 );
@@ -26,31 +57,18 @@ const productionOrderSchema = new mongoose.Schema(
       trim: true
     },
 
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      required: true
-    },
-
-    quantity: {
-      type: Number,
+    items: {
+      type: [itemSchema],
       required: true,
-      min: 0
-    },
-
-    composition: {
-      type: [orderCompositionSchema],
-      required: true
+      validate: {
+        validator: (items) => items.length >= 1,
+        message: "Un ordre doit contenir au moins un produit"
+      }
     },
 
     status: {
       type: String,
-      enum: [
-        "PLANIFIE",
-        "EN_COURS",
-        "TERMINE",
-        "ANNULE"
-      ],
+      enum: ["PLANIFIE", "EN_COURS", "TERMINE", "ANNULE"],
       default: "PLANIFIE",
       required: true
     },
@@ -67,39 +85,13 @@ const productionOrderSchema = new mongoose.Schema(
       required: true
     },
 
-    startedAt: {
-      type: Date,
-      default: null
-    },
-
-    startedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null
-    },
-
-    finishedAt: {
-      type: Date,
-      default: null
-    },
-
-    finishedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null
-    },
-
-    cancelledAt: {
-      type: Date,
-      default: null
-    }
+    startedAt: { type: Date, default: null },
+    startedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    finishedAt: { type: Date, default: null },
+    finishedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    cancelledAt: { type: Date, default: null }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model(
-  "ProductionOrder",
-  productionOrderSchema
-);
+module.exports = mongoose.model("ProductionOrder", productionOrderSchema);x²
