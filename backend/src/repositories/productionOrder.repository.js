@@ -6,10 +6,10 @@ async function create(data) {
 
 async function findById(id) {
   return ProductionOrder.findById(id)
-    .populate("product")
+    .populate("items.product")
     .populate("assignedTo", "name email role")
     .populate("createdBy", "name email role")
-    .populate("composition.material")
+    .populate("items.composition.material")
     .lean();
 }
 
@@ -18,48 +18,36 @@ async function findByReference(reference) {
 }
 
 async function updateById(id, data) {
-  return ProductionOrder.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true
-    }
-  )
-    .populate("product")
+  return ProductionOrder.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true
+  })
+    .populate("items.product")
     .populate("assignedTo", "name email role")
     .populate("createdBy", "name email role")
-    .populate("composition.material")
+    .populate("items.composition.material")
     .lean();
 }
 
 async function cancelById(id, data) {
-  return ProductionOrder.findByIdAndUpdate(
-    id,
-    data,
-    {
-      new: true,
-      runValidators: true
-    }
-  )
-    .populate("product")
+  return ProductionOrder.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true
+  })
+    .populate("items.product")
     .populate("assignedTo", "name email role")
     .populate("createdBy", "name email role")
-    .populate("composition.material")
+    .populate("items.composition.material")
     .lean();
 }
 
-async function findFiltered({
-  filter,
-  page,
-  limit
-}) {
+async function findFiltered({ filter, page, limit }) {
   const [data, total] = await Promise.all([
     ProductionOrder.find(filter)
-      .populate("product")
+      .populate("items.product")
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email role")
-      .populate("composition.material")
+      .populate("items.composition.material")
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -79,15 +67,8 @@ async function findFiltered({
   };
 }
 
-async function findByAssignedTo({
-  assignedTo,
-  status,
-  page,
-  limit
-}) {
-  const filter = {
-    assignedTo
-  };
+async function findByAssignedTo({ assignedTo, status, page, limit }) {
+  const filter = { assignedTo };
 
   if (status) {
     filter.status = status;
@@ -95,9 +76,9 @@ async function findByAssignedTo({
 
   const [data, total] = await Promise.all([
     ProductionOrder.find(filter)
-      .populate("product")
+      .populate("items.product")
       .populate("assignedTo", "name email role")
-      .populate("composition.material")
+      .populate("items.composition.material")
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -122,9 +103,9 @@ async function findByIdAndAssignedTo(id, assignedTo) {
     _id: id,
     assignedTo
   })
-    .populate("product")
+    .populate("items.product")
     .populate("assignedTo", "name email role")
-    .populate("composition.material")
+    .populate("items.composition.material")
     .lean();
 }
 
