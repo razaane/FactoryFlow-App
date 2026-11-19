@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const ProductionOrder = require("../models/productionOrder.model");
 const StockMovement = require("../models/stockMovement.model");
@@ -35,10 +34,8 @@ async function start(orderId, operatorId) {
         throw createError("Seul un ordre planifié peut démarrer", 400);
       }
 
-      const requirements = calculateRequirements(
-        order.composition,
-        order.quantity
-      );
+      // Besoins totaux de TOUS les produits, additionnés par matière
+      const requirements = calculateRequirements(order.items);
 
       // Vérifier TOUTES les matières avant de créer des sorties.
       for (const requirement of requirements) {
@@ -72,6 +69,8 @@ async function start(orderId, operatorId) {
       }
 
       order.status = "EN_COURS";
+      order.startedAt = new Date();
+      order.startedBy = operatorId;
       await order.save({ session });
 
       result = order;
@@ -83,6 +82,7 @@ async function start(orderId, operatorId) {
   }
 }
 
+// FP-62
 async function finish(orderId, operatorId) {
   if (!mongoose.isValidObjectId(orderId)) {
     throw createError("Identifiant invalide", 400);
@@ -102,6 +102,8 @@ async function finish(orderId, operatorId) {
   }
 
   order.status = "TERMINE";
+  order.finishedAt = new Date();
+  order.finishedBy = operatorId;
   await order.save();
 
   return order;
@@ -121,7 +123,7 @@ async function history(operatorId, query = {}) {
       .sort({ updatedAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("product")
+      .populate("items.product")
       .lean(),
 
     ProductionOrder.countDocuments(filter)
