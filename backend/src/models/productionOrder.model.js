@@ -31,19 +31,7 @@ const itemSchema = new mongoose.Schema(
         message: "La quantité doit être strictement positive"
       }
     },
-    composition: {
-    type: [compositionSchema],
-    validate: {
-      validator: function (composition) {
-        const materialIds = composition.map(
-          (item) => item.material.toString()
-        );
-
-        return materialIds.length === new Set(materialIds).size;
-      },
-      message: "Chaque matière première doit apparaître une seule fois."
-    }
-}
+    composition: [compositionSchema]
   },
   { _id: false }
 );
@@ -94,4 +82,4 @@ const productionOrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ProductionOrder", productionOrderSchema);x²
+module.exports = mongoose.model("ProductionOrder", productionOrderSchema);
