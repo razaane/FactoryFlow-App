@@ -162,9 +162,22 @@ async function list({ status, product, from, to, page, limit }) {
   });
 }
 
+async function getById(req, res, next) {
+  try {
+    const order = await productionOrderService.getById(req.params.id);
+
+    return res.status(200).json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 module.exports = {
   create,
   update,
   cancel,
-  list
+  list,
+  getById
 };

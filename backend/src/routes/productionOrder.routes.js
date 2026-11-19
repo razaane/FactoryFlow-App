@@ -180,6 +180,32 @@ const validateProductionOrderList =
  *         description: Ordre introuvable
  */
 
+/**
+ * @swagger
+ * /api/production-orders/{id}:
+ *   get:
+ *     summary: Consulter le détail d'un ordre de fabrication
+ *     tags: [Production Orders]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Détail de l'ordre avec ses produits et leurs compositions
+ *       400:
+ *         description: Identifiant invalide
+ *       401:
+ *         description: Authentification requise
+ *       403:
+ *         description: Accès réservé à l'administrateur
+ *       404:
+ *         description: Ordre introuvable
+ */
 router.use(
   authenticate,
   authorize("Admin")
@@ -208,4 +234,5 @@ router.get(
   controller.list
 );
 
+router.get("/:id", controller.getById);
 module.exports = router;

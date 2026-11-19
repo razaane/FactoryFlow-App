@@ -139,5 +139,18 @@ async function history(operatorId, query = {}) {
     }
   };
 }
+async function getById(id) {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Identifiant invalide", 400);
+  }
 
-module.exports = { start, finish, history };
+  const order = await productionOrderRepository.findById(id);
+
+  if (!order) {
+    throw new AppError("Ordre introuvable", 404);
+  }
+
+  return order;
+}
+
+module.exports = { start, finish, history ,getById};
