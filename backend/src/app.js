@@ -26,6 +26,8 @@ const productRoutes = require("./routes/product.routes");
 const productionOrderRoutes =require("./routes/productionOrder.routes");
 const operatorOrderRoutes =require("./routes/operatorOrder.routes");
 
+const dashboardRoutes = require("./routes/dashboard.routes");
+
 app.use("/api/installation", installationRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -48,6 +50,7 @@ app.get("/test-admin", authenticate, authorize("Admin"), (req, res) => {
     });
 });
 
+app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
