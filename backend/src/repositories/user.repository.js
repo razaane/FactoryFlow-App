@@ -12,7 +12,8 @@ async function findById(id) {
 }
 
 async function findAll(filter, limit) {
-  return User.find(filter).limit(limit);
+  // ne jamais renvoyer le hash du mot de passe
+  return User.find(filter).select("-password").limit(limit);
 }
 
 async function count(filter) {
