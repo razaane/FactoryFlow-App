@@ -33,3 +33,46 @@ export function validateInstallation({ name, email, password, confirmPassword })
 
   return errors;
 }
+
+export const UNITS = ["kg", "g", "L", "mL", "unité", "m"];
+
+function isNonNegativeNumber(value) {
+  return value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0;
+}
+
+export function validateMaterial(values, isCreate) {
+  const errors = {};
+
+  if (!values.reference.trim()) {
+    errors.reference = "La référence est obligatoire";
+  }
+
+  if (values.name.trim().length < 2) {
+    errors.name = "Le nom doit contenir au moins 2 caractères";
+  }
+
+  if (!UNITS.includes(values.unit)) {
+    errors.unit = "Unité invalide";
+  }
+
+  if (!isNonNegativeNumber(values.alertThreshold)) {
+    errors.alertThreshold = "Le seuil doit être un nombre supérieur ou égal à 0";
+  }
+
+  if (isCreate && !isNonNegativeNumber(values.stockInitial)) {
+    errors.stockInitial = "Le stock initial doit être un nombre supérieur ou égal à 0";
+  }
+
+  return errors;
+}
+
+// retourne un message d'erreur, ou "" si la quantité est valide
+export function validateStockEntry(quantity) {
+  const value = Number(quantity);
+
+  if (quantity === "" || !Number.isFinite(value) || value <= 0) {
+    return "La quantité doit être strictement positive";
+  }
+
+  return "";
+}
