@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import { ROLES } from "./utils/roles";
 import Materials from "./pages/admin/Materials";
 import MaterialDetail from "./pages/admin/MaterialDetail";
+import Products from "./pages/admin/Products";
 
 // placeholder: kaytbeddel b les vraies pages f les tickets jayin
 function Placeholder({ title }) {
@@ -31,6 +32,7 @@ function App() {
           <Route index element={<Placeholder title="Tableau de bord" />} />
           <Route path="materials" element={<Materials />} />
           <Route path="materials/:id" element={<MaterialDetail />} />
+          <Route path="products" element={<Products />} />
         </Route>
       </Route>
 
