@@ -130,7 +130,7 @@ async function cancel(id) {
   });
 }
 
-async function list({ status, product, from, to, page, limit }) {
+async function list({ status, product, search, from, to, page, limit }) {
   const filter = {};
 
   if (status) {
@@ -139,6 +139,15 @@ async function list({ status, product, from, to, page, limit }) {
 
   if (product) {
     filter["items.product"] = product;
+  }
+
+  // recherche par référence (ex: OF-17...)
+  if (search) {
+    const safeSearch = String(search)
+      .trim()
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    filter.reference = { $regex: safeSearch, $options: "i" };
   }
 
   if (from || to) {

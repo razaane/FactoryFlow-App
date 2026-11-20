@@ -57,15 +57,15 @@ async function cancel(req, res, next) {
 
 async function list(req, res, next) {
   try {
-    const result = await productionOrderService.list({
+       const result = await productionOrderService.list({
       status: req.query.status,
       product: req.query.product,
+      search: req.query.search,
       from: req.query.from,
       to: req.query.to,
       page: req.pagination.page,
       limit: req.pagination.limit
     });
-
     return res.status(200).json({
       success: true,
       ...result
