@@ -76,3 +76,36 @@ export function validateStockEntry(quantity) {
 
   return "";
 }
+
+// values.composition = [{ material: "id", quantity: "2.5" }]
+export function validateProduct(values) {
+  const errors = {};
+  const lines = values.composition;
+
+  if (!values.reference.trim()) {
+    errors.reference = "La référence est obligatoire";
+  }
+
+  if (!values.name.trim()) {
+    errors.name = "Le nom est obligatoire";
+  }
+
+  if (lines.length === 0) {
+    errors.composition = "Ajoutez au moins une matière première";
+  } else if (lines.some((line) => !line.material)) {
+    errors.composition = "Choisissez une matière pour chaque ligne";
+  } else if (new Set(lines.map((line) => line.material)).size !== lines.length) {
+    errors.composition = "Une matière ne peut pas apparaître deux fois";
+  } else if (
+    lines.some(
+      (line) =>
+        line.quantity === "" ||
+        !Number.isFinite(Number(line.quantity)) ||
+        Number(line.quantity) <= 0
+    )
+  ) {
+    errors.composition = "Chaque quantité doit être strictement positive";
+  }
+
+  return errors;
+}
