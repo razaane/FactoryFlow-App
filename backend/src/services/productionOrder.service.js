@@ -171,17 +171,18 @@ async function list({ status, product, search, from, to, page, limit }) {
   });
 }
 
-async function getById(req, res, next) {
-  try {
-    const order = await productionOrderService.getById(req.params.id);
-
-    return res.status(200).json({
-      success: true,
-      data: order
-    });
-  } catch (error) {
-    next(error);
+async function getById(id) {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new AppError("Identifiant invalide", 400);
   }
+
+  const order = await productionOrderRepository.findById(id);
+
+  if (!order) {
+    throw new AppError("Ordre introuvable", 404);
+  }
+
+  return order;
 }
 module.exports = {
   create,

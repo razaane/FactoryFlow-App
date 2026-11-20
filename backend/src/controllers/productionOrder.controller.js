@@ -55,9 +55,24 @@ async function cancel(req, res, next) {
   }
 }
 
+async function getById(req, res, next) {
+  try {
+    const order = await productionOrderService.getById(
+      req.params.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 async function list(req, res, next) {
   try {
-       const result = await productionOrderService.list({
+    const result = await productionOrderService.list({
       status: req.query.status,
       product: req.query.product,
       search: req.query.search,
@@ -66,6 +81,7 @@ async function list(req, res, next) {
       page: req.pagination.page,
       limit: req.pagination.limit
     });
+
     return res.status(200).json({
       success: true,
       ...result
@@ -79,5 +95,6 @@ module.exports = {
   create,
   update,
   cancel,
+  getById,
   list
 };
