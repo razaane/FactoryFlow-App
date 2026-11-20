@@ -109,3 +109,32 @@ export function validateProduct(values) {
 
   return errors;
 }
+
+// values = { items: [{ product, quantity }], assignedTo }
+export function validateOrder(values) {
+  const errors = {};
+  const items = values.items;
+
+  if (items.length === 0) {
+    errors.items = "Ajoutez au moins un produit";
+  } else if (items.some((item) => !item.product)) {
+    errors.items = "Choisissez un produit pour chaque ligne";
+  } else if (new Set(items.map((item) => item.product)).size !== items.length) {
+    errors.items = "Un produit ne peut apparaître qu'une seule fois";
+  } else if (
+    items.some(
+      (item) =>
+        item.quantity === "" ||
+        !Number.isFinite(Number(item.quantity)) ||
+        Number(item.quantity) <= 0
+    )
+  ) {
+    errors.items = "Chaque quantité doit être strictement positive";
+  }
+
+  if (!values.assignedTo) {
+    errors.assignedTo = "Choisissez un opérateur";
+  }
+
+  return errors;
+}
