@@ -8,6 +8,8 @@ import Login from "./pages/Login";
 import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
 import { ROLES } from "./utils/roles";
+import Materials from "./pages/admin/Materials";
+import MaterialDetail from "./pages/admin/MaterialDetail";
 
 // placeholder: kaytbeddel b les vraies pages f les tickets jayin
 function Placeholder({ title }) {
@@ -27,6 +29,8 @@ function App() {
       <Route element={<ProtectedRoute roles={[ROLES.ADMIN]} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Placeholder title="Tableau de bord" />} />
+          <Route path="materials" element={<Materials />} />
+          <Route path="materials/:id" element={<MaterialDetail />} />
         </Route>
       </Route>
 
