@@ -13,15 +13,30 @@ async function findById(id) {
   return RawMaterial.findById(id);
 }
 
-async function findAll(skip, limit) {
-  return RawMaterial.find()
+function buildFilter(search) {
+  if (!search) {
+    return {};
+  }
+
+  const safe = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  return {
+    $or: [
+      { name: { $regex: safe, $options: "i" } },
+      { reference: { $regex: safe, $options: "i" } }
+    ]
+  };
+}
+
+async function findAll(skip, limit, search) {
+  return RawMaterial.find(buildFilter(search))
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
 }
 
-async function count() {
-  return RawMaterial.countDocuments();
+async function count(search) {
+  return RawMaterial.countDocuments(buildFilter(search));
 }
 
 async function updateById(id, data) {
@@ -46,6 +61,7 @@ module.exports = {
   create,
   findByReference,
   findById,
+  buildFilter,
   findAll,
   count,
   updateById,

@@ -45,7 +45,9 @@ function validateListQuery(query = {}) {
     throw new AppError("Limit invalide", 400);
   }
 
-  return { page, limit };
+  const search = typeof query.search === "string" ? query.search.trim() : "";
+
+  return { page, limit, search };
 }
 
 function validateUpdateMaterial(body = {}) {

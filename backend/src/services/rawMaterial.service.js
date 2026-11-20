@@ -51,7 +51,7 @@ async function getQuantity(material) {
     if (movement._id === "SORTIE") sorties += movement.total;
   }
 
-  return material.stockInitial + entrees - sorties;
+    return (material.stockInitial || 0) + entrees - sorties;
 }
 
 function format(material, quantity) {
@@ -68,14 +68,13 @@ function format(material, quantity) {
 }
 
 async function list(query) {
-  const { page, limit } = validateListQuery(query);
+    const { page, limit, search } = validateListQuery(query);
   const skip = (page - 1) * limit;
 
   const [materials, total] = await Promise.all([
-    rawMaterialRepository.findAll(skip, limit),
-    rawMaterialRepository.count()
+    rawMaterialRepository.findAll(skip, limit, search),
+    rawMaterialRepository.count(search)
   ]);
-
   const items = await Promise.all(
     materials.map(async material =>
       format(material, await getQuantity(material))
@@ -145,7 +144,18 @@ async function update(id, body) {
 
 
 async function getAlerts() {
-  return rawMaterialRepository.findBelowThreshold();
+  const materials = await rawMaterialRepository.findAll(0, 0);
+  const alerts = [];
+
+  for (const material of materials) {
+    const quantity = await getQuantity(material);
+
+    if (quantity <= material.alertThreshold) {
+      alerts.push(format(material, quantity));
+    }
+  }
+
+  return alerts;
 }
 
 module.exports = { create, list, getById, update ,getAlerts};

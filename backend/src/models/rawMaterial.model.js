@@ -6,6 +6,7 @@ const rawMaterialSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     unit: { type: String, required: true, enum:["kg", "g", "L", "mL", "unité", "m"] },
     alertThreshold: { type: Number, required: true, min: 0, default: 0 },
+    stockInitial: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

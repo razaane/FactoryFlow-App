@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const ProductionOrder = require("../models/productionOrder.model");
+const RawMaterial = require("../models/rawMaterial.model");
 const StockMovement = require("../models/stockMovement.model");
 const calculateRequirements =
   require("./requirements.service").calculateRequirements;
@@ -57,15 +58,32 @@ async function start(orderId, operatorId) {
       }
 
       // Aucune déduction n'est faite avant la fin des vérifications.
-      for (const requirement of requirements) {
-        await StockMovement.create(
-          [{
-            matiere: requirement.material,
-            type: "SORTIE",
-            quantite: requirement.quantity
-          }],
-          { session }
-        );
+           for (const requirement of requirements) {
+        const material = await RawMaterial.findById(requirement.material)
+          .session(session);
+
+        if (!material) {
+          throw createError("Matière première introuvable", 404);
+        }
+
+        const movements = await StockMovement.find({
+          matiere: requirement.material
+        }).session(session);
+
+        let stock = material.stockInitial || 0;
+
+        for (const movement of movements) {
+          stock += movement.type === "ENTREE"
+            ? movement.quantite
+            : -movement.quantite;
+        }
+
+        if (stock < requirement.quantity) {
+          throw createError(
+            `Stock insuffisant pour ${material.name} (requis ${requirement.quantity} ${material.unit}, disponible ${stock})`,
+            400
+          );
+        }
       }
 
       order.status = "EN_COURS";
