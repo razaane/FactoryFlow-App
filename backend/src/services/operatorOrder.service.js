@@ -1,7 +1,9 @@
 const mongoose = require("mongoose");
 const ProductionOrder = require("../models/productionOrder.model");
-const RawMaterial = require("../models/rawMaterial.model");
 const StockMovement = require("../models/stockMovement.model");
+const RawMaterial = require("../models/rawMaterial.model");
+const productionOrderRepository =
+  require("../repositories/productionOrder.repository");
 const calculateRequirements =
   require("./requirements.service").calculateRequirements;
 
@@ -11,10 +13,40 @@ function createError(message, statusCode) {
   return error;
 }
 
-async function start(orderId, operatorId) {
-  if (!mongoose.isValidObjectId(orderId)) {
+function checkId(id) {
+  if (!mongoose.isValidObjectId(id)) {
     throw createError("Identifiant invalide", 400);
   }
+}
+
+// mes ordres (filtre optionnel par statut), paginés: { data, meta }
+async function listMyOrders({ userId, status, page, limit }) {
+  return productionOrderRepository.findByAssignedTo({
+    assignedTo: userId,
+    status,
+    page,
+    limit
+  });
+}
+
+// détail d'un ordre, uniquement s'il m'est affecté
+async function getMyOrder({ userId, orderId }) {
+  checkId(orderId);
+
+  const order = await productionOrderRepository.findByIdAndAssignedTo(
+    orderId,
+    userId
+  );
+
+  if (!order) {
+    throw createError("Ordre introuvable ou non affecté", 404);
+  }
+
+  return order;
+}
+
+async function start(orderId, operatorId) {
+  checkId(orderId);
 
   const session = await mongoose.startSession();
 
@@ -40,25 +72,6 @@ async function start(orderId, operatorId) {
 
       // Vérifier TOUTES les matières avant de créer des sorties.
       for (const requirement of requirements) {
-        const movements = await StockMovement.find({
-          matiere: requirement.material
-        }).session(session);
-
-        const stock = movements.reduce((total, movement) => {
-          return total + (
-            movement.type === "ENTREE"
-              ? movement.quantite
-              : -movement.quantite
-          );
-        }, 0);
-
-        if (stock < requirement.quantity) {
-          throw createError("Stock insuffisant", 400);
-        }
-      }
-
-      // Aucune déduction n'est faite avant la fin des vérifications.
-           for (const requirement of requirements) {
         const material = await RawMaterial.findById(requirement.material)
           .session(session);
 
@@ -86,6 +99,18 @@ async function start(orderId, operatorId) {
         }
       }
 
+      // Aucune déduction n'est faite avant la fin des vérifications.
+      for (const requirement of requirements) {
+        await StockMovement.create(
+          [{
+            matiere: requirement.material,
+            type: "SORTIE",
+            quantite: requirement.quantity
+          }],
+          { session }
+        );
+      }
+
       order.status = "EN_COURS";
       order.startedAt = new Date();
       order.startedBy = operatorId;
@@ -100,11 +125,8 @@ async function start(orderId, operatorId) {
   }
 }
 
-// FP-62
 async function finish(orderId, operatorId) {
-  if (!mongoose.isValidObjectId(orderId)) {
-    throw createError("Identifiant invalide", 400);
-  }
+  checkId(orderId);
 
   const order = await ProductionOrder.findOne({
     _id: orderId,
@@ -127,48 +149,17 @@ async function finish(orderId, operatorId) {
   return order;
 }
 
+// historique: mes ordres terminés, paginés: { data, meta }
 async function history(operatorId, query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(query.limit) || 10));
 
-  const filter = {
+  return productionOrderRepository.findByAssignedTo({
     assignedTo: operatorId,
-    status: "TERMINE"
-  };
-
-  const [orders, total] = await Promise.all([
-    ProductionOrder.find(filter)
-      .sort({ updatedAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate("items.product")
-      .lean(),
-
-    ProductionOrder.countDocuments(filter)
-  ]);
-
-  return {
-    data: orders,
-    pagination: {
-      page,
-      limit,
-      total,
-      pages: Math.ceil(total / limit)
-    }
-  };
-}
-async function getById(id) {
-  if (!mongoose.isValidObjectId(id)) {
-    throw new AppError("Identifiant invalide", 400);
-  }
-
-  const order = await productionOrderRepository.findById(id);
-
-  if (!order) {
-    throw new AppError("Ordre introuvable", 404);
-  }
-
-  return order;
+    status: "TERMINE",
+    page,
+    limit
+  });
 }
 
-module.exports = { start, finish, history ,getById};
+module.exports = { listMyOrders, getMyOrder, start, finish, history };
