@@ -14,12 +14,10 @@ import Install from "./pages/Install";
 import Login from "./pages/Login";
 import Forbidden from "./pages/Forbidden";
 import NotFound from "./pages/NotFound";
+import History from "./pages/operator/History";
+import MyOrders from "./pages/operator/MyOrders";
+import OperatorOrderDetail from "./pages/operator/OperatorOrderDetail";
 import { ROLES } from "./utils/roles";
-
-// placeholder: kaytbeddel b les vraies pages de l'espace Opérateur
-function Placeholder({ title }) {
-  return <h1>{title}</h1>;
-}
 
 function App() {
   return (
@@ -46,7 +44,9 @@ function App() {
       {/* espace Opérateur (routes imbriquées) */}
       <Route element={<ProtectedRoute roles={[ROLES.OPERATOR]} />}>
         <Route path="/operator" element={<OperatorLayout />}>
-          <Route index element={<Placeholder title="Mes ordres" />} />
+          <Route index element={<MyOrders />} />
+          <Route path="orders/:id" element={<OperatorOrderDetail />} />
+          <Route path="history" element={<History />} />
         </Route>
       </Route>
 
